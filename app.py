@@ -1,11 +1,12 @@
 import os
 
-from flask import Flask, render_template, request, flash, redirect, session, g
+from flask import (Flask, flash, g, redirect, render_template, request,
+                   session, url_for)
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
-from forms import UserAddForm, LoginForm, MessageForm
-from models import db, connect_db, User, Message
+from forms import LoginForm, MessageForm, UserAddForm
+from models import Message, User, connect_db, db
 
 CURR_USER_KEY = "curr_user"
 
@@ -47,10 +48,11 @@ def do_login(user):
 
 
 def do_logout():
-    """Logout user."""
+    """Logout user. Flash logout message."""
 
     if CURR_USER_KEY in session:
         del session[CURR_USER_KEY]
+        flash("Logged out!", "success")
 
 
 @app.route('/signup', methods=["GET", "POST"])
@@ -113,7 +115,8 @@ def login():
 def logout():
     """Handle logout of user."""
 
-    # IMPLEMENT THIS
+    do_logout()
+    return redirect(url_for('login'))
 
 
 ##############################################################################
