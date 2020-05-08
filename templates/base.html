@@ -27,6 +27,11 @@
       </a>
     </div>
     <ul class="nav navbar-nav navbar-right">
+      {% if g.user %}
+      <li>
+        <a href="{{url_for('list_messages')}}">Trending</a>
+      </li>
+      {% endif %}
       {% if request.endpoint != None %}
       <li>
         <form class="navbar-form navbar-right" action="/users">

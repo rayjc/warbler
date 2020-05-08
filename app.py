@@ -273,6 +273,17 @@ def delete_user():
 ##############################################################################
 # Messages routes:
 
+@app.route('/messages')
+def list_messages():
+    """
+    List 100 most recent messages.
+    """
+    messages = Message.query.order_by(Message.timestamp.desc()).limit(100).all()
+
+    return render_template('trending.html', messages=messages)
+
+
+
 @app.route('/messages/new', methods=["GET", "POST"])
 def messages_add():
     """Add a message:
