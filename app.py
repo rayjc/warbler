@@ -6,7 +6,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import LoginForm, MessageForm, UserAddForm, UserEditForm
-from models import Message, User, connect_db, db
+from models import Message, User, connect_db, db, Follows
 
 CURR_USER_KEY = "curr_user"
 
@@ -18,7 +18,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = (
     os.environ.get('DATABASE_URL', 'postgres:///warbler'))
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ECHO'] = False
+app.config['SQLALCHEMY_ECHO'] = True
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "it's a secret")
 toolbar = DebugToolbarExtension(app)
@@ -325,11 +325,31 @@ def homepage():
     """
 
     if g.user:
-        messages = (Message
-                    .query
-                    .order_by(Message.timestamp.desc())
-                    .limit(100)
-                    .all())
+        # SELECT messages.* FROM messages
+        # JOIN follows ON user_being_followed_id = messages.user_id
+        # JOIN users ON users.id = user_following_id
+        # WHERE users.id = 302
+        following_messages = (
+            Message.query
+                .join(Follows, Follows.user_being_followed_id == Message.user_id)
+                .join(User, User.id == Follows.user_following_id)
+                .filter(User.id == g.user.id)
+                # .order_by(Message.timestamp.desc())
+                # .limit(100)
+                # .all()
+        )
+        # SELECT messages.* FROM messages JOIN users WHERE user.id = messages.user_id
+        user_messages = Message.query.join(User).filter(Message.user_id == g.user.id)
+        # SELECT * FROM (following_messages UNION user_messages)
+        # ORDER BY messages.timestamp desc
+        # LIMIT 100;
+        messages = (
+            following_messages
+                .union(user_messages)
+                .order_by(Message.timestamp.desc())
+                .limit(100)
+                .all()
+        )
 
         return render_template('home.html', messages=messages)
 
