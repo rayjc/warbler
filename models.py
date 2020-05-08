@@ -50,6 +50,13 @@ class Likes(db.Model):
         unique=True
     )
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "message_id": self.message_id,
+        }
+
 
 class User(db.Model):
     """User in the system."""

@@ -2,9 +2,9 @@
   {% for msg in messages %}
   {% if g.user and msg.user.id == g.user.id %}
   <li class="list-group-item curr-user-message">
-    {% else %}
+  {% else %}
   <li class="list-group-item">
-    {% endif %}
+  {% endif %}
     <a href="/messages/{{ msg.id  }}" class="message-link">
       <a href="/users/{{ msg.user.id }}">
         <img src="{{ msg.user.image_url }}" alt="" class="timeline-image">
@@ -14,14 +14,32 @@
         <span class="text-muted">{{ msg.timestamp.strftime('%d %B %Y') }}</span>
         <p>{{ msg.text }}</p>
       </div>
-      <form method="POST" action="/users/add_like/{{ msg.id }}" id="messages-form">
-        <button class="
-              btn 
-              btn-sm 
-              {{'btn-primary' if msg.id in likes else 'btn-secondary'}}">
-          <i class="fa fa-thumbs-up"></i>
-        </button>
-      </form>
+      {% if msg.id in liked_message_ids %}
+        <form class="messages-form"
+          data-message-id="{{msg.id}}"
+          data-user-id="{{g.user.id}}"
+          data-likes-id="{{likes_msg_map[msg.id]}}">
+          {% if msg.id not in user_message_ids %}
+            <button class="
+                  btn 
+                  btn-sm 
+                  {{'btn-primary' if msg.id in likes else 'btn-secondary'}}">
+              <i class="fas fa-thumbs-up"></i>
+            </button>
+          {% endif %}
+        </form>
+      {% else %}
+        <form class="messages-form" data-message-id="{{msg.id}}" data-user-id="{{g.user.id}}">
+          {% if msg.id not in user_message_ids %}
+            <button class="
+                        btn 
+                        btn-sm 
+                        {{'btn-primary' if msg.id in likes else 'btn-secondary'}}">
+              <i class="far fa-thumbs-up"></i>
+            </button>
+          {% endif %}
+        </form>
+      {% endif %}
   </li>
   {% endfor %}
 </ul>

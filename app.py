@@ -1,12 +1,12 @@
 import os
 
 from flask import (Flask, flash, g, redirect, render_template, request,
-                   session, url_for)
+                   session, url_for, jsonify)
 from flask_debugtoolbar import DebugToolbarExtension
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from forms import LoginForm, MessageForm, UserAddForm, UserEditForm
-from models import Message, User, connect_db, db, Follows
+from models import Message, User, connect_db, db, Follows, Likes
 
 CURR_USER_KEY = "curr_user"
 
@@ -276,12 +276,28 @@ def delete_user():
 @app.route('/messages')
 def list_messages():
     """
-    List 100 most recent messages.
+    List 50 most recent messages.
     """
-    messages = Message.query.order_by(Message.timestamp.desc()).limit(100).all()
+    messages = Message.query.order_by(Message.timestamp.desc()).limit(50).all()
 
-    return render_template('trending.html', messages=messages)
+    liked_message_ids = {
+        msg.id for msg in g.user.likes
+    }
+    user_message_ids = {
+        msg.id for msg in g.user.messages
+    }
 
+    likes_msg_map = {
+        like.message_id: like.id
+        for like in Likes.query.filter(Likes.user_id == g.user.id)
+    }
+
+    return render_template(
+        'trending.html', messages=messages,
+        liked_message_ids=liked_message_ids,
+        user_message_ids=user_message_ids,
+        likes_msg_map=likes_msg_map,
+    )
 
 
 @app.route('/messages/new', methods=["GET", "POST"])
@@ -331,8 +347,53 @@ def messages_destroy(message_id):
 
 
 ##############################################################################
-# Homepage and error pages
+# Likes REST API routes:
 
+@app.route('/api/likes', methods=['POST'])
+def create_like():
+    """
+    Create a like association to message based on JSON data;
+    return created like in JSON.
+    """
+    data = request.json
+    likes_data = {
+        field: data.get(field)
+        for field in Likes.__table__.columns.keys()
+        if data.get(field)
+    }
+    try:
+        likes = Likes(**likes_data)
+        db.session.add(likes)
+        db.session.commit()
+    except IntegrityError as e:
+        resp = jsonify({"message": e.orig.pgerror})
+        return (resp, 400)
+    except:
+        resp = jsonify({"message": "Failed to create a like association"})
+        return (resp, 400)
+
+    resp = jsonify({"likes": likes.serialize()})
+    return (resp, 201)
+
+
+@app.route('/api/likes/<int:likes_id>', methods=['DELETE'])
+def delete_likes(likes_id):
+    """
+    Remove likes association of specified id; return delete message if successful.
+    """
+    likes = Likes.query.get_or_404(likes_id)
+    try:
+        db.session.delete(likes)
+        db.session.commit()
+    except SQLAlchemyError:
+        resp = jsonify({"message": f"Failed to delete likes({likes_id})"})
+        return (resp, 400)
+
+    return jsonify({"message": "Deleted"})
+
+
+##############################################################################
+# Homepage and error pages
 
 @app.route('/')
 def homepage():
@@ -369,7 +430,23 @@ def homepage():
                 .all()
         )
 
-        return render_template('home.html', messages=messages)
+        liked_message_ids = {
+            msg.id for msg in g.user.likes
+        }
+        user_message_ids = {
+            msg.id for msg in g.user.messages
+        }
+        likes_msg_map = {
+            like.message_id: like.id
+            for like in Likes.query.filter(Likes.user_id == g.user.id)
+        }
+        
+        return render_template(
+            'home.html', messages=messages,
+            liked_message_ids=liked_message_ids,
+            user_message_ids=user_message_ids,
+            likes_msg_map=likes_msg_map,
+        )
 
     else:
         return render_template('home-anon.html')
