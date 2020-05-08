@@ -32,7 +32,14 @@ connect_db(app)
 
 @app.before_request
 def add_user_to_g():
-    """If we're logged in, add curr user to Flask global."""
+    """
+    If we're logged in, add curr user to Flask global before making
+    any request so each request has access to current user object.
+
+    Note: g is an application global context that lasts for
+        one request/response cycle unlike the session which
+        remains and persists for mulitple requests/respones.
+    """
 
     if CURR_USER_KEY in session:
         g.user = User.query.get(session[CURR_USER_KEY])
