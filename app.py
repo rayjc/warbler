@@ -160,7 +160,25 @@ def users_show(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
-    return render_template('users/show.html', user=user, messages=messages)
+    num_likes = len(user.likes)
+    return render_template(
+        'users/show.html', user=user, messages=messages, num_likes=num_likes
+    )
+
+
+@app.route('/users/<int:user_id>/likes')
+def show_likes(user_id):
+    """Show list of messages this user has liked."""
+
+    user = User.query.get_or_404(user_id)
+
+    # snagging messages in order from the database;
+    # user.messages won't be in order by default
+    messages = user.likes
+    num_likes = len(user.likes)
+    return render_template(
+        'users/likes.html', user=user, messages=messages, num_likes=num_likes
+    )
 
 
 @app.route('/users/<int:user_id>/following')
@@ -172,7 +190,8 @@ def show_following(user_id):
         return redirect("/")
 
     user = User.query.get_or_404(user_id)
-    return render_template('users/following.html', user=user)
+    num_likes = len(user.likes)
+    return render_template('users/following.html', user=user, num_likes=num_likes)
 
 
 @app.route('/users/<int:user_id>/followers')
@@ -184,7 +203,8 @@ def users_followers(user_id):
         return redirect("/")
 
     user = User.query.get_or_404(user_id)
-    return render_template('users/followers.html', user=user)
+    num_likes = len(user.likes)
+    return render_template('users/followers.html', user=user, num_likes=num_likes)
 
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
