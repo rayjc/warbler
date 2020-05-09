@@ -298,6 +298,10 @@ def list_messages():
     """
     List 50 most recent messages.
     """
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
     messages = Message.query.order_by(Message.timestamp.desc()).limit(50).all()
 
     liked_message_ids = {
