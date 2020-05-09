@@ -245,6 +245,7 @@ def profile():
         flash("Access unauthorized.", "danger")
         return redirect("/")
 
+    status_code = 200
     form = (
         # populate form with user object initially
         UserEditForm.new_custom_form(g.user)
@@ -270,8 +271,11 @@ def profile():
           # render the existing form instead of redirecting
         flash(f"Failed to verify password!", "danger")
         form.password.errors.append("Incorrect password")
+        status_code = 400
+    elif(request.method == "POST" and not form.validate_on_submit()):
+        status_code = 400
     
-    return render_template('users/edit.html', form=form)
+    return (render_template('users/edit.html', form=form), status_code)
 
 
 @app.route('/users/delete', methods=["POST"])
