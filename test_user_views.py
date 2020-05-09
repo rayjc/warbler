@@ -71,6 +71,7 @@ class UserViewTestCase(TestCase):
         routes = [
             Route(f"/users/{user_id}/following", "GET"),
             Route(f"/users/{user_id}/followers", "GET"),
+            Route(f"/users/{user_id}/likes", "GET"),
             Route(f"/users/follow/{follow_id}", "POST"),
             Route(f"/users/stop-following/{follow_id}", "POST"),
             Route("/users/profile", "GET"),
@@ -133,9 +134,13 @@ class UserViewTestCase(TestCase):
         likes = Likes(user_id=self.testuser2.id, message_id=msg1.id)
         db.session.add(likes)
         db.session.commit()
+        invalid_id = self.testuser1.id + self.testuser2.id
 
         with self.client as c:
-            invalid_id = self.testuser1.id + self.testuser2.id
+            # log in
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser1.id
+
             resp = c.get(f"/users/{invalid_id}/likes")
             self.assertEqual(resp.status_code, 404)
         

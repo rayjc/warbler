@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from forms import LoginForm, MessageForm, UserAddForm, UserEditForm
 from models import Message, User, connect_db, db, Follows, Likes
+from util import login_required
 
 CURR_USER_KEY = "curr_user"
 
@@ -167,6 +168,7 @@ def users_show(user_id):
 
 
 @app.route('/users/<int:user_id>/likes')
+@login_required()
 def show_likes(user_id):
     """Show list of messages this user has liked."""
 
@@ -180,14 +182,10 @@ def show_likes(user_id):
         'users/likes.html', user=user, messages=messages, num_likes=num_likes
     )
 
-
 @app.route('/users/<int:user_id>/following')
+@login_required()
 def show_following(user_id):
     """Show list of people this user is following."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     user = User.query.get_or_404(user_id)
     num_likes = len(user.likes)
@@ -195,12 +193,9 @@ def show_following(user_id):
 
 
 @app.route('/users/<int:user_id>/followers')
+@login_required()
 def users_followers(user_id):
     """Show list of followers of this user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     user = User.query.get_or_404(user_id)
     num_likes = len(user.likes)
@@ -208,12 +203,9 @@ def users_followers(user_id):
 
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
+@login_required()
 def add_follow(follow_id):
     """Add a follow for the currently-logged-in user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     followed_user = User.query.get_or_404(follow_id)
     g.user.following.append(followed_user)
@@ -223,12 +215,9 @@ def add_follow(follow_id):
 
 
 @app.route('/users/stop-following/<int:follow_id>', methods=['POST'])
+@login_required()
 def stop_following(follow_id):
     """Have currently-logged-in-user stop following this user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     followed_user = User.query.get(follow_id)
     g.user.following.remove(followed_user)
@@ -238,12 +227,9 @@ def stop_following(follow_id):
 
 
 @app.route('/users/profile', methods=["GET", "POST"])
+@login_required()
 def profile():
     """Update profile for current user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     status_code = 200
     form = (
@@ -279,12 +265,9 @@ def profile():
 
 
 @app.route('/users/delete', methods=["POST"])
+@login_required()
 def delete_user():
     """Delete user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     do_logout()
 
@@ -298,13 +281,11 @@ def delete_user():
 # Messages routes:
 
 @app.route('/messages')
+@login_required()
 def list_messages():
     """
     List 50 most recent messages.
     """
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     messages = Message.query.order_by(Message.timestamp.desc()).limit(50).all()
 
@@ -329,15 +310,12 @@ def list_messages():
 
 
 @app.route('/messages/new', methods=["GET", "POST"])
+@login_required()
 def messages_add():
     """Add a message:
 
     Show form if GET. If valid, update message and redirect to user page.
     """
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     form = MessageForm()
 
@@ -360,12 +338,9 @@ def messages_show(message_id):
 
 
 @app.route('/messages/<int:message_id>/delete', methods=["POST"])
+@login_required()
 def messages_destroy(message_id):
     """Delete a message."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     msg = Message.query.get(message_id)
     db.session.delete(msg)
@@ -378,6 +353,7 @@ def messages_destroy(message_id):
 # Likes REST API routes:
 
 @app.route('/api/likes', methods=['POST'])
+@login_required()
 def create_like():
     """
     Create a like association to message based on JSON data;
@@ -405,6 +381,7 @@ def create_like():
 
 
 @app.route('/api/likes/<int:likes_id>', methods=['DELETE'])
+@login_required()
 def delete_likes(likes_id):
     """
     Remove likes association of specified id; return delete message if successful.
